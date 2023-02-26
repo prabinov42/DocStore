@@ -25,6 +25,7 @@ library(tidytext)
 library(officer)
 library(pdftools)
 library(stringi)
+library(SnowballC)
 
 fns <- list.files(recursive = TRUE) %>%
   enframe() %>%
@@ -118,11 +119,42 @@ docs_df <- docs_df %>%
 docs_df <- docs_df %>%
   mutate(doc_name = str_c(short_name, "#", doc_index)) %>%
   mutate(text = str_squish(text)) %>%
-  filter(text != "", text != " ")
-
-tidy_1 <- docs_df %>%
-  select(short_name, text) %>%
+  filter(text != "", text != " ") %>%
   mutate(text = str_to_lower(text))
+
+
+############
+# next several lines stem each word, and for each stem replace the word with the most common word with that stem
+# this is so, for example, that when we see a report we do not see stems (which can be hard to interpret), but rather words.
+
+docs_df <- docs_df %>% rowid_to_column("rid")
+
+df_stemmed <- docs_df %>%
+  unnest_tokens(word, text) %>%
+  mutate(stem_word = wordStem(word))
+
+dft <- df_stemmed %>%
+  count(stem_word, word, sort = TRUE) %>%
+  arrange(desc(n)) %>%
+  group_by(stem_word) %>%
+  summarize(word = first(word))
+
+df_subs <- df_stemmed %>%
+  left_join(dft, by = c("stem_word" = "stem_word")) %>%
+  select(-stem_word, -word.x, word = word.y) %>%
+  rename(string_id = rid) %>%
+  rowid_to_column("row") %>%
+  group_by(string_id) %>%
+  summarize(str = str_flatten(word, collapse = " "))
+
+docs_df <- docs_df %>% left_join(df_subs, by = c("rid" = "string_id"))
+docs_df <- docs_df %>%
+  select(-rid, -text) %>%
+  rename(text = str)
+  
+##############
+tidy_1 <- docs_df %>%
+  select(short_name, text) 
 tidy_1 <- tidy_1 %>%
   unnest_tokens(gram, text, token = "ngrams", n = 1) %>%
   anti_join(stop_words, by = c("gram" = "word"))
@@ -135,8 +167,7 @@ tidy_1 <- tidy_1 %>% anti_join(stop_words, by = c("gram" = "word"))
 tidy_1 <- tidy_1 %>% filter(!is.na(gram))
 
 tidy_2 <- docs_df %>%
-  select(short_name, text) %>%
-  mutate(text = str_to_lower(text))
+  select(short_name, text) 
 tidy_2 <- tidy_2 %>%
   unnest_tokens(gram, text, token = "ngrams", n = 2) %>%
   anti_join(stop_words, by = c("gram" = "word"))
@@ -158,8 +189,7 @@ tidy_2 <- tidy_2 %>%
   select(-word1, -word2)
 
 tidy_3 <- docs_df %>%
-  select(short_name, text) %>%
-  mutate(text = str_to_lower(text))
+  select(short_name, text) 
 tidy_3 <- tidy_3 %>%
   unnest_tokens(gram, text, token = "ngrams", n = 3) %>%
   anti_join(stop_words, by = c("gram" = "word"))
