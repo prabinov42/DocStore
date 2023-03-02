@@ -1,7 +1,7 @@
 Document Text Processing
 ================
 Peter Rabinovitch
-2023-03-02 16:02:00
+2023-03-02 16:05:01
 
 ``` r
 library(tidyverse)
@@ -42,11 +42,11 @@ tabcap <- function() {
 
 # Intro
 
-In this document we explore the value of two techniques: - correlation
-of n-grams within a document, as described by [Yule’s Phi
-Coefficient](https://en.wikipedia.org/wiki/Phi_coefficient), and - text
-networks, where n-grams (nodes) are connected if their correlation is
-high (low) enough.
+In this document we explore the value of two techniques:  
+- correlation of n-grams within a document, as described by [Yule’s Phi
+Coefficient](https://en.wikipedia.org/wiki/Phi_coefficient), and  
+- text networks, where n-grams (nodes) are connected if their
+correlation is high (low) enough.
 
 Here we look at 1, 2 and 3-grams.
 
